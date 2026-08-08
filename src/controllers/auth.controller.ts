@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authService } from '../services/auth.service';
-import { RegisterInput } from '../validators/auth.validators';
+import { LoginInput, RegisterInput } from '../validators/auth.validators';
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const input = req.body as RegisterInput;
@@ -10,5 +10,16 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json({
     message: 'User registered successfully',
     user,
+  });
+});
+
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const input = req.body as LoginInput;
+  const { user, token } = await authService.login(input);
+
+  res.status(200).json({
+    message: 'Login successful',
+    user,
+    token,
   });
 });

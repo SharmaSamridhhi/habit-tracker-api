@@ -5,16 +5,16 @@ import { resetDb } from '../test-utils/resetDb';
 
 const app = createApp();
 
+beforeEach(async () => {
+  await resetDb();
+});
+
+afterAll(async () => {
+  await resetDb();
+  await prisma.$disconnect();
+});
+
 describe('POST /register', () => {
-  beforeEach(async () => {
-    await resetDb();
-  });
-
-  afterAll(async () => {
-    await resetDb();
-    await prisma.$disconnect();
-  });
-
   it('registers a new user and never returns the password', async () => {
     const response = await request(app).post('/register').send({
       name: 'Grace Hopper',
@@ -73,5 +73,46 @@ describe('POST /register', () => {
 
     const count = await prisma.user.count();
     expect(count).toBe(0);
+  });
+});
+
+describe('POST /login', () => {
+  const credentials = { email: 'grace@example.com', password: 'super-secret-password' };
+
+  beforeEach(async () => {
+    await request(app)
+      .post('/register')
+      .send({ name: 'Grace Hopper', ...credentials });
+  });
+
+  it('logs in with correct credentials and returns a usable JWT', async () => {
+    const response = await request(app).post('/login').send(credentials);
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({ email: credentials.email });
+    expect(typeof response.body.token).toBe('string');
+    expect(response.body.token.split('.')).toHaveLength(3);
+  });
+
+  it('rejects an unknown email with 401', async () => {
+    const response = await request(app)
+      .post('/login')
+      .send({ email: 'nobody@example.com', password: credentials.password });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects a wrong password with 401', async () => {
+    const response = await request(app)
+      .post('/login')
+      .send({ email: credentials.email, password: 'wrong-password' });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('rejects an invalid payload with 400', async () => {
+    const response = await request(app).post('/login').send({ email: 'not-an-email' });
+
+    expect(response.status).toBe(400);
   });
 });

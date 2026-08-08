@@ -5,8 +5,9 @@ import {
   UserRepository,
 } from '../repositories/user.repository';
 import { AppError } from '../utils/AppError';
-import { hashPassword } from '../utils/password';
-import { RegisterInput } from '../validators/auth.validators';
+import { signToken } from '../utils/jwt';
+import { comparePassword, hashPassword } from '../utils/password';
+import { LoginInput, RegisterInput } from '../validators/auth.validators';
 
 interface AuthServiceDeps {
   userRepository: UserRepository;
@@ -28,6 +29,21 @@ export function createAuthService({ userRepository: users }: AuthServiceDeps) {
       });
 
       return toPublicUser(user);
+    },
+
+    async login(input: LoginInput): Promise<{ user: PublicUser; token: string }> {
+      const user = await users.findByEmail(input.email);
+      if (!user) {
+        throw AppError.unauthorized('Invalid email or password');
+      }
+
+      const isPasswordValid = await comparePassword(input.password, user.password);
+      if (!isPasswordValid) {
+        throw AppError.unauthorized('Invalid email or password');
+      }
+
+      const token = signToken({ sub: user.id });
+      return { user: toPublicUser(user), token };
     },
   };
 }

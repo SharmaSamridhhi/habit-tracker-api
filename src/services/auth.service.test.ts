@@ -1,4 +1,6 @@
 import { UserRepository } from '../repositories/user.repository';
+import { hashPassword } from '../utils/password';
+import { verifyToken } from '../utils/jwt';
 import { createAuthService } from './auth.service';
 
 function buildUserRepositoryMock(overrides: Partial<UserRepository> = {}): UserRepository {
@@ -58,5 +60,55 @@ describe('authService.register', () => {
       statusCode: 409,
     });
     expect(userRepository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('authService.login', () => {
+  const loginInput = { email: 'ada@example.com', password: 'super-secret-password' };
+
+  async function buildStoredUser() {
+    return {
+      id: 'user-1',
+      name: 'Ada Lovelace',
+      email: loginInput.email,
+      password: await hashPassword(loginInput.password),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  it('returns the user and a valid JWT for correct credentials', async () => {
+    const storedUser = await buildStoredUser();
+    const userRepository = buildUserRepositoryMock({
+      findByEmail: jest.fn().mockResolvedValue(storedUser),
+    });
+    const authService = createAuthService({ userRepository });
+
+    const result = await authService.login(loginInput);
+
+    expect(result.user).toMatchObject({ id: storedUser.id, email: storedUser.email });
+    expect(result.user).not.toHaveProperty('password');
+    expect(verifyToken(result.token)).toEqual({ sub: storedUser.id });
+  });
+
+  it('rejects with 401 when the email is unknown', async () => {
+    const userRepository = buildUserRepositoryMock({
+      findByEmail: jest.fn().mockResolvedValue(null),
+    });
+    const authService = createAuthService({ userRepository });
+
+    await expect(authService.login(loginInput)).rejects.toMatchObject({ statusCode: 401 });
+  });
+
+  it('rejects with 401 when the password is wrong', async () => {
+    const storedUser = await buildStoredUser();
+    const userRepository = buildUserRepositoryMock({
+      findByEmail: jest.fn().mockResolvedValue(storedUser),
+    });
+    const authService = createAuthService({ userRepository });
+
+    await expect(
+      authService.login({ ...loginInput, password: 'wrong-password' }),
+    ).rejects.toMatchObject({ statusCode: 401 });
   });
 });
