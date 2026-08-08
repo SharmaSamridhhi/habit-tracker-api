@@ -1,0 +1,184 @@
+{
+  "info": {
+    "_postman_id": "ce755325-cd5a-4312-a46c-c8e964dffac8",
+    "name": "Habit Tracker API",
+    "description": "Personal Habit Tracking & Streak Management REST API. Run \"Auth > Login\" first (after \"Auth > Register\" if the account doesn't exist yet) -- its test script stores the JWT in the `token` collection variable, which every other request uses automatically. \"Habits > Create Habit\" similarly stores the created habit's id in `habitId`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "habitId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"email\": \"ada@example.com\",\n  \"password\": \"super-secret-password\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/register", "host": ["{{baseUrl}}"], "path": ["register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('token', body.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ada@example.com\",\n  \"password\": \"super-secret-password\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/login", "host": ["{{baseUrl}}"], "path": ["login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Habits",
+      "item": [
+        {
+          "name": "Create Habit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('habitId', body.habit.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Drink 2L of water\",\n  \"description\": \"Stay hydrated throughout the day\",\n  \"frequency\": \"daily\",\n  \"tags\": [\"health\"],\n  \"reminderTime\": \"08:00\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/habits", "host": ["{{baseUrl}}"], "path": ["habits"] }
+          }
+        },
+        {
+          "name": "List Habits",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/habits?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "tag", "value": "health", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Habit",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/habits/{{habitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits", "{{habitId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Habit",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Drink 3L of water\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/habits/{{habitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits", "{{habitId}}"]
+            }
+          }
+        },
+        {
+          "name": "Track Habit (mark complete for today)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/habits/{{habitId}}/track",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits", "{{habitId}}", "track"]
+            }
+          }
+        },
+        {
+          "name": "Get Habit History (last 7 days + streak)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/habits/{{habitId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits", "{{habitId}}", "history"]
+            }
+          }
+        },
+        {
+          "name": "Delete Habit",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/habits/{{habitId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["habits", "{{habitId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
