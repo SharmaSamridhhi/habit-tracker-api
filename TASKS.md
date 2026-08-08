@@ -16,7 +16,7 @@ Stack: Node.js + TypeScript (strict) + Express + PostgreSQL + Prisma + JWT/bcryp
 - [x] 9. Daily habit tracking — `POST /habits/:id/track` (one entry/day rule)
 - [x] 10. History endpoint & streak calculation — `GET /habits/:id/history`
 - [x] 11. Per-user rate limiting middleware (bonus)
-- [ ] 12. OpenAPI/Swagger documentation (bonus)
+- [x] 12. OpenAPI/Swagger documentation (bonus)
 - [ ] 13. README + Postman collection
 - [ ] 14. GitHub Actions CI workflow (lint, typecheck, test)
 - [ ] 15. Final polish and test coverage review
