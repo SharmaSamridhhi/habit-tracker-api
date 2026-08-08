@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Frequency {
+  daily
+  weekly
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  habits    Habit[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Habit {
+  id           String        @id @default(uuid())
+  title        String
+  description  String?
+  frequency    Frequency
+  tags         String[]      @default([])
+  reminderTime String?
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs         TrackingLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@map("habits")
+}
+
+model TrackingLog {
+  id          String   @id @default(uuid())
+  // Date-only value (no time component) so a DB-level unique constraint
+  // can enforce "one completion entry per habit per day".
+  completedOn DateTime @db.Date
+  habitId     String
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([habitId, completedOn])
+  @@map("tracking_logs")
+}
