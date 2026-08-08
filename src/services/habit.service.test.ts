@@ -1,5 +1,6 @@
-import { Habit } from '@prisma/client';
+import { Habit, Prisma, TrackingLog } from '@prisma/client';
 import { HabitRepository } from '../repositories/habit.repository';
+import { TrackingLogRepository } from '../repositories/trackingLog.repository';
 import { createHabitService } from './habit.service';
 
 function buildHabit(overrides: Partial<Habit> = {}): Habit {
@@ -29,10 +30,30 @@ function buildHabitRepositoryMock(overrides: Partial<HabitRepository> = {}): Hab
   };
 }
 
+function buildTrackingLog(overrides: Partial<TrackingLog> = {}): TrackingLog {
+  return {
+    id: 'log-1',
+    habitId: 'habit-1',
+    completedOn: new Date(),
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
+
+function buildTrackingLogRepositoryMock(
+  overrides: Partial<TrackingLogRepository> = {},
+): TrackingLogRepository {
+  return {
+    create: jest.fn().mockResolvedValue(buildTrackingLog()),
+    ...overrides,
+  };
+}
+
 describe('habitService.createHabit', () => {
   it('merges the authenticated userId into the repository create call', async () => {
     const habitRepository = buildHabitRepositoryMock();
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
     const input = { title: 'Read', frequency: 'daily' as const, tags: [] };
 
     await habitService.createHabit('user-1', input);
@@ -47,7 +68,8 @@ describe('habitService.listHabits', () => {
       findManyByUser: jest.fn().mockResolvedValue([buildHabit()]),
       countByUser: jest.fn().mockResolvedValue(21),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     const result = await habitService.listHabits('user-1', { page: 3, limit: 10 });
 
@@ -63,7 +85,8 @@ describe('habitService.listHabits', () => {
 
   it('passes the tag filter through to the repository', async () => {
     const habitRepository = buildHabitRepositoryMock();
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await habitService.listHabits('user-1', { page: 1, limit: 10, tag: 'health' });
 
@@ -77,7 +100,8 @@ describe('habitService.listHabits', () => {
 
   it('returns 0 totalPages instead of NaN when there are no results', async () => {
     const habitRepository = buildHabitRepositoryMock();
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     const result = await habitService.listHabits('user-1', { page: 1, limit: 10 });
 
@@ -91,7 +115,8 @@ describe('habitService.getHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(habit),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(habitService.getHabit('user-1', 'habit-1')).resolves.toEqual(habit);
   });
@@ -100,7 +125,8 @@ describe('habitService.getHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(null),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(habitService.getHabit('user-1', 'missing')).rejects.toMatchObject({
       statusCode: 404,
@@ -112,7 +138,8 @@ describe('habitService.getHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(habit),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(habitService.getHabit('user-1', 'habit-1')).rejects.toMatchObject({
       statusCode: 404,
@@ -128,7 +155,8 @@ describe('habitService.updateHabit', () => {
       findById: jest.fn().mockResolvedValue(habit),
       update: jest.fn().mockResolvedValue(updated),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     const result = await habitService.updateHabit('user-1', 'habit-1', {
       title: 'Updated title',
@@ -143,7 +171,8 @@ describe('habitService.updateHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(habit),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(
       habitService.updateHabit('user-1', 'habit-1', { title: 'New title' }),
@@ -158,7 +187,8 @@ describe('habitService.deleteHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(habit),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await habitService.deleteHabit('user-1', 'habit-1');
 
@@ -169,11 +199,75 @@ describe('habitService.deleteHabit', () => {
     const habitRepository = buildHabitRepositoryMock({
       findById: jest.fn().mockResolvedValue(null),
     });
-    const habitService = createHabitService({ habitRepository });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(habitService.deleteHabit('user-1', 'missing')).rejects.toMatchObject({
       statusCode: 404,
     });
     expect(habitRepository.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('habitService.trackHabit', () => {
+  it('creates a tracking log for today when the habit is owned by the user', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    await habitService.trackHabit('user-1', 'habit-1');
+
+    expect(trackingLogRepository.create).toHaveBeenCalledWith({
+      habitId: 'habit-1',
+      completedOn: expect.any(Date),
+    });
+  });
+
+  it('throws 404 and does not create a log when the habit is not owned by the user', async () => {
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(null),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    await expect(habitService.trackHabit('user-1', 'missing')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+    expect(trackingLogRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('translates a duplicate-day unique constraint violation into a 409', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const conflictError = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '6.19.3',
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock({
+      create: jest.fn().mockRejectedValue(conflictError),
+    });
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    await expect(habitService.trackHabit('user-1', 'habit-1')).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('rethrows unexpected errors from the repository', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock({
+      create: jest.fn().mockRejectedValue(new Error('connection lost')),
+    });
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    await expect(habitService.trackHabit('user-1', 'habit-1')).rejects.toThrow('connection lost');
   });
 });

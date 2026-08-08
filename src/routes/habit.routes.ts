@@ -4,6 +4,7 @@ import {
   deleteHabit,
   getHabit,
   listHabits,
+  trackHabit,
   updateHabit,
 } from '../controllers/habit.controller';
 import { requireAuth } from '../middleware/auth.middleware';
@@ -30,3 +31,4 @@ habitRouter.put(
   updateHabit,
 );
 habitRouter.delete('/habits/:id', validate({ params: habitIdParamSchema }), deleteHabit);
+habitRouter.post('/habits/:id/track', validate({ params: habitIdParamSchema }), trackHabit);

@@ -54,3 +54,12 @@ export const deleteHabit = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(204).send();
 });
+
+export const trackHabit = asyncHandler(async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  const { id } = req.params as unknown as HabitIdParam;
+
+  const trackingLog = await habitService.trackHabit(userId, id);
+
+  res.status(201).json({ trackingLog });
+});

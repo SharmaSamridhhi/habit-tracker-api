@@ -1,6 +1,11 @@
-import { Habit } from '@prisma/client';
+import { Habit, Prisma, TrackingLog } from '@prisma/client';
 import { habitRepository, HabitRepository } from '../repositories/habit.repository';
+import {
+  trackingLogRepository,
+  TrackingLogRepository,
+} from '../repositories/trackingLog.repository';
 import { AppError } from '../utils/AppError';
+import { todayUTC } from '../utils/date';
 import {
   CreateHabitInput,
   ListHabitsQuery,
@@ -9,6 +14,7 @@ import {
 
 interface HabitServiceDeps {
   habitRepository: HabitRepository;
+  trackingLogRepository: TrackingLogRepository;
 }
 
 export interface PaginatedHabits {
@@ -21,7 +27,10 @@ export interface PaginatedHabits {
   };
 }
 
-export function createHabitService({ habitRepository: habits }: HabitServiceDeps) {
+export function createHabitService({
+  habitRepository: habits,
+  trackingLogRepository: trackingLogs,
+}: HabitServiceDeps) {
   // Returns 404 (never 403) when the habit belongs to someone else, so a
   // caller can't distinguish "not found" from "not yours" and enumerate ids.
   async function requireOwnedHabit(userId: string, id: string): Promise<Habit> {
@@ -69,7 +78,20 @@ export function createHabitService({ habitRepository: habits }: HabitServiceDeps
       await requireOwnedHabit(userId, id);
       await habits.delete(id);
     },
+
+    async trackHabit(userId: string, id: string): Promise<TrackingLog> {
+      await requireOwnedHabit(userId, id);
+
+      try {
+        return await trackingLogs.create({ habitId: id, completedOn: todayUTC() });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw AppError.conflict('Habit already tracked for today');
+        }
+        throw error;
+      }
+    },
   };
 }
 
-export const habitService = createHabitService({ habitRepository });
+export const habitService = createHabitService({ habitRepository, trackingLogRepository });

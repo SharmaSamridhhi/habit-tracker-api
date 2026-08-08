@@ -13,7 +13,7 @@ Stack: Node.js + TypeScript (strict) + Express + PostgreSQL + Prisma + JWT/bcryp
 - [x] 6. JWT auth middleware protecting habit routes
 - [x] 7. Habit create & list — `POST /habits`, `GET /habits` (pagination, tag filter)
 - [x] 8. Habit detail/update/delete — `GET/PUT/DELETE /habits/:id`
-- [ ] 9. Daily habit tracking — `POST /habits/:id/track` (one entry/day rule)
+- [x] 9. Daily habit tracking — `POST /habits/:id/track` (one entry/day rule)
 - [ ] 10. History endpoint & streak calculation — `GET /habits/:id/history`
 - [ ] 11. Per-user rate limiting middleware (bonus)
 - [ ] 12. OpenAPI/Swagger documentation (bonus)

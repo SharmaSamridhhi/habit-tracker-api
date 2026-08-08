@@ -278,3 +278,67 @@ describe('DELETE /habits/:id', () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe('POST /habits/:id/track', () => {
+  it('rejects a request with no auth token', async () => {
+    const response = await request(app).post(`/habits/${NON_EXISTENT_ID}/track`);
+    expect(response.status).toBe(401);
+  });
+
+  it('marks the habit as completed for today', async () => {
+    const { token } = await registerAndLogin(app);
+    const habitId = await createTestHabit(app, token);
+
+    const response = await request(app)
+      .post(`/habits/${habitId}/track`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(201);
+    expect(response.body.trackingLog).toMatchObject({ habitId });
+    expect(response.body.trackingLog.completedOn).toBeDefined();
+  });
+
+  it('rejects a second track for the same habit on the same day with 409', async () => {
+    const { token } = await registerAndLogin(app);
+    const habitId = await createTestHabit(app, token);
+
+    await request(app).post(`/habits/${habitId}/track`).set('Authorization', `Bearer ${token}`);
+    const response = await request(app)
+      .post(`/habits/${habitId}/track`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(409);
+  });
+
+  it('returns 404 for a habit that does not exist', async () => {
+    const { token } = await registerAndLogin(app);
+
+    const response = await request(app)
+      .post(`/habits/${NON_EXISTENT_ID}/track`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 404 (not 403) when tracking another user's habit", async () => {
+    const owner = await registerAndLogin(app, { email: 'owner@example.com' });
+    const intruder = await registerAndLogin(app, { email: 'intruder@example.com' });
+    const habitId = await createTestHabit(app, owner.token);
+
+    const response = await request(app)
+      .post(`/habits/${habitId}/track`)
+      .set('Authorization', `Bearer ${intruder.token}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it('returns 400 for a malformed id', async () => {
+    const { token } = await registerAndLogin(app);
+
+    const response = await request(app)
+      .post('/habits/not-a-uuid/track')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+  });
+});
