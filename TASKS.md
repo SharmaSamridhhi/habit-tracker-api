@@ -10,7 +10,7 @@ Stack: Node.js + TypeScript (strict) + Express + PostgreSQL + Prisma + JWT/bcryp
 - [x] 3. Env config validation and core middleware (error handling, logging, security headers)
 - [x] 4. User registration — `POST /register`
 - [x] 5. Login with JWT — `POST /login`
-- [ ] 6. JWT auth middleware protecting habit routes
+- [x] 6. JWT auth middleware protecting habit routes
 - [ ] 7. Habit create & list — `POST /habits`, `GET /habits` (pagination, tag filter)
 - [ ] 8. Habit detail/update/delete — `GET/PUT/DELETE /habits/:id`
 - [ ] 9. Daily habit tracking — `POST /habits/:id/track` (one entry/day rule)
