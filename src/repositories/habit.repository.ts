@@ -22,10 +22,21 @@ export interface CountByUserOptions {
   tag?: string;
 }
 
+export interface UpdateHabitData {
+  title?: string;
+  description?: string;
+  frequency?: 'daily' | 'weekly';
+  tags?: string[];
+  reminderTime?: string;
+}
+
 export interface HabitRepository {
   create(data: CreateHabitData): Promise<Habit>;
   findManyByUser(options: FindManyByUserOptions): Promise<Habit[]>;
   countByUser(options: CountByUserOptions): Promise<number>;
+  findById(id: string): Promise<Habit | null>;
+  update(id: string, data: UpdateHabitData): Promise<Habit>;
+  delete(id: string): Promise<void>;
 }
 
 function buildWhere(userId: string, tag?: string): Prisma.HabitWhereInput {
@@ -49,5 +60,14 @@ export const habitRepository: HabitRepository = {
   },
   countByUser({ userId, tag }) {
     return prisma.habit.count({ where: buildWhere(userId, tag) });
+  },
+  findById(id) {
+    return prisma.habit.findUnique({ where: { id } });
+  },
+  update(id, data) {
+    return prisma.habit.update({ where: { id }, data });
+  },
+  async delete(id) {
+    await prisma.habit.delete({ where: { id } });
   },
 };

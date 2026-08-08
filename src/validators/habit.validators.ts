@@ -24,3 +24,28 @@ export const listHabitsQuerySchema = z.object({
 });
 
 export type ListHabitsQuery = z.infer<typeof listHabitsQuerySchema>;
+
+export const updateHabitSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Title is required').max(200).optional(),
+    description: z.string().trim().max(1000).optional(),
+    frequency: z
+      .enum(['daily', 'weekly'], { message: 'frequency must be "daily" or "weekly"' })
+      .optional(),
+    tags: z.array(z.string().trim().min(1)).max(20).optional(),
+    reminderTime: z
+      .string()
+      .regex(REMINDER_TIME_REGEX, 'reminderTime must be in HH:MM 24-hour format')
+      .optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
+
+export type UpdateHabitInput = z.infer<typeof updateHabitSchema>;
+
+export const habitIdParamSchema = z.object({
+  id: z.string().uuid('Invalid habit id'),
+});
+
+export type HabitIdParam = z.infer<typeof habitIdParamSchema>;

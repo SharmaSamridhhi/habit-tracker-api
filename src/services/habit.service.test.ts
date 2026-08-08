@@ -22,6 +22,9 @@ function buildHabitRepositoryMock(overrides: Partial<HabitRepository> = {}): Hab
     create: jest.fn().mockResolvedValue(buildHabit()),
     findManyByUser: jest.fn().mockResolvedValue([]),
     countByUser: jest.fn().mockResolvedValue(0),
+    findById: jest.fn().mockResolvedValue(null),
+    update: jest.fn().mockResolvedValue(buildHabit()),
+    delete: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -79,5 +82,98 @@ describe('habitService.listHabits', () => {
     const result = await habitService.listHabits('user-1', { page: 1, limit: 10 });
 
     expect(result.pagination.totalPages).toBe(0);
+  });
+});
+
+describe('habitService.getHabit', () => {
+  it('returns the habit when it exists and belongs to the user', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await expect(habitService.getHabit('user-1', 'habit-1')).resolves.toEqual(habit);
+  });
+
+  it('throws 404 when the habit does not exist', async () => {
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(null),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await expect(habitService.getHabit('user-1', 'missing')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+  });
+
+  it('throws 404 (not 403) when the habit belongs to a different user', async () => {
+    const habit = buildHabit({ userId: 'someone-else' });
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await expect(habitService.getHabit('user-1', 'habit-1')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+  });
+});
+
+describe('habitService.updateHabit', () => {
+  it('updates the habit when it is owned by the user', async () => {
+    const habit = buildHabit();
+    const updated = buildHabit({ title: 'Updated title' });
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+      update: jest.fn().mockResolvedValue(updated),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    const result = await habitService.updateHabit('user-1', 'habit-1', {
+      title: 'Updated title',
+    });
+
+    expect(habitRepository.update).toHaveBeenCalledWith('habit-1', { title: 'Updated title' });
+    expect(result).toEqual(updated);
+  });
+
+  it('throws 404 and does not call update when the habit is not owned by the user', async () => {
+    const habit = buildHabit({ userId: 'someone-else' });
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await expect(
+      habitService.updateHabit('user-1', 'habit-1', { title: 'New title' }),
+    ).rejects.toMatchObject({ statusCode: 404 });
+    expect(habitRepository.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('habitService.deleteHabit', () => {
+  it('deletes the habit when it is owned by the user', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await habitService.deleteHabit('user-1', 'habit-1');
+
+    expect(habitRepository.delete).toHaveBeenCalledWith('habit-1');
+  });
+
+  it('throws 404 and does not call delete when the habit is not owned by the user', async () => {
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(null),
+    });
+    const habitService = createHabitService({ habitRepository });
+
+    await expect(habitService.deleteHabit('user-1', 'missing')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+    expect(habitRepository.delete).not.toHaveBeenCalled();
   });
 });

@@ -1,8 +1,19 @@
 import { Router } from 'express';
-import { createHabit, listHabits } from '../controllers/habit.controller';
+import {
+  createHabit,
+  deleteHabit,
+  getHabit,
+  listHabits,
+  updateHabit,
+} from '../controllers/habit.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate';
-import { createHabitSchema, listHabitsQuerySchema } from '../validators/habit.validators';
+import {
+  createHabitSchema,
+  habitIdParamSchema,
+  listHabitsQuerySchema,
+  updateHabitSchema,
+} from '../validators/habit.validators';
 
 export const habitRouter = Router();
 
@@ -12,3 +23,10 @@ habitRouter.use('/habits', requireAuth);
 
 habitRouter.post('/habits', validate({ body: createHabitSchema }), createHabit);
 habitRouter.get('/habits', validate({ query: listHabitsQuerySchema }), listHabits);
+habitRouter.get('/habits/:id', validate({ params: habitIdParamSchema }), getHabit);
+habitRouter.put(
+  '/habits/:id',
+  validate({ params: habitIdParamSchema, body: updateHabitSchema }),
+  updateHabit,
+);
+habitRouter.delete('/habits/:id', validate({ params: habitIdParamSchema }), deleteHabit);
