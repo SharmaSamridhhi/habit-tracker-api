@@ -22,3 +22,13 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
 
   next();
 }
+
+// Reads req.userId set by requireAuth. Throws instead of returning undefined
+// so a route mounted without requireAuth fails loudly rather than silently
+// scoping a query to `undefined`.
+export function getUserId(req: Request): string {
+  if (!req.userId) {
+    throw AppError.unauthorized();
+  }
+  return req.userId;
+}
