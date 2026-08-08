@@ -3,6 +3,7 @@ import {
   createHabit,
   deleteHabit,
   getHabit,
+  getHabitHistory,
   listHabits,
   trackHabit,
   updateHabit,
@@ -32,3 +33,4 @@ habitRouter.put(
 );
 habitRouter.delete('/habits/:id', validate({ params: habitIdParamSchema }), deleteHabit);
 habitRouter.post('/habits/:id/track', validate({ params: habitIdParamSchema }), trackHabit);
+habitRouter.get('/habits/:id/history', validate({ params: habitIdParamSchema }), getHabitHistory);

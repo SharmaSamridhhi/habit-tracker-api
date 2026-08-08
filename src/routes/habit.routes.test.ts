@@ -342,3 +342,61 @@ describe('POST /habits/:id/track', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('GET /habits/:id/history', () => {
+  it('rejects a request with no auth token', async () => {
+    const response = await request(app).get(`/habits/${NON_EXISTENT_ID}/history`);
+    expect(response.status).toBe(401);
+  });
+
+  it('returns 7 days with today marked completed after tracking', async () => {
+    const { token } = await registerAndLogin(app);
+    const habitId = await createTestHabit(app, token);
+
+    await request(app).post(`/habits/${habitId}/track`).set('Authorization', `Bearer ${token}`);
+
+    const response = await request(app)
+      .get(`/habits/${habitId}/history`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.history).toHaveLength(7);
+    expect(response.body.history[6]).toMatchObject({ completed: true });
+    expect(response.body.streak).toBe(1);
+  });
+
+  it('returns an all-incomplete week and a streak of 0 for a never-tracked habit', async () => {
+    const { token } = await registerAndLogin(app);
+    const habitId = await createTestHabit(app, token);
+
+    const response = await request(app)
+      .get(`/habits/${habitId}/history`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.history.every((day: { completed: boolean }) => !day.completed)).toBe(true);
+    expect(response.body.streak).toBe(0);
+  });
+
+  it('returns 404 for a habit that does not exist', async () => {
+    const { token } = await registerAndLogin(app);
+
+    const response = await request(app)
+      .get(`/habits/${NON_EXISTENT_ID}/history`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 404 (not 403) for another user's habit", async () => {
+    const owner = await registerAndLogin(app, { email: 'owner@example.com' });
+    const intruder = await registerAndLogin(app, { email: 'intruder@example.com' });
+    const habitId = await createTestHabit(app, owner.token);
+
+    const response = await request(app)
+      .get(`/habits/${habitId}/history`)
+      .set('Authorization', `Bearer ${intruder.token}`);
+
+    expect(response.status).toBe(404);
+  });
+});

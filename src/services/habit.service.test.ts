@@ -1,7 +1,11 @@
 import { Habit, Prisma, TrackingLog } from '@prisma/client';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { HabitRepository } from '../repositories/habit.repository';
 import { TrackingLogRepository } from '../repositories/trackingLog.repository';
 import { createHabitService } from './habit.service';
+
+dayjs.extend(utc);
 
 function buildHabit(overrides: Partial<Habit> = {}): Habit {
   return {
@@ -45,8 +49,13 @@ function buildTrackingLogRepositoryMock(
 ): TrackingLogRepository {
   return {
     create: jest.fn().mockResolvedValue(buildTrackingLog()),
+    findRecentByHabit: jest.fn().mockResolvedValue([]),
     ...overrides,
   };
+}
+
+function daysAgo(n: number): Date {
+  return dayjs.utc().startOf('day').subtract(n, 'day').toDate();
 }
 
 describe('habitService.createHabit', () => {
@@ -269,5 +278,80 @@ describe('habitService.trackHabit', () => {
     const habitService = createHabitService({ habitRepository, trackingLogRepository });
 
     await expect(habitService.trackHabit('user-1', 'habit-1')).rejects.toThrow('connection lost');
+  });
+});
+
+describe('habitService.getHistory', () => {
+  it('throws 404 when the habit is not owned by the user', async () => {
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(null),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock();
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    await expect(habitService.getHistory('user-1', 'missing')).rejects.toMatchObject({
+      statusCode: 404,
+    });
+  });
+
+  it('returns exactly 7 days, oldest first, ending today', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock({
+      findRecentByHabit: jest.fn().mockResolvedValue([]),
+    });
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    const result = await habitService.getHistory('user-1', 'habit-1');
+
+    expect(result.history).toHaveLength(7);
+    expect(result.history[6]?.date).toBe(dayjs.utc().format('YYYY-MM-DD'));
+    expect(result.history[0]?.date).toBe(dayjs.utc().subtract(6, 'day').format('YYYY-MM-DD'));
+  });
+
+  it('marks each day completed based on the tracking logs', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock({
+      findRecentByHabit: jest
+        .fn()
+        .mockResolvedValue([
+          buildTrackingLog({ completedOn: daysAgo(0) }),
+          buildTrackingLog({ completedOn: daysAgo(2) }),
+        ]),
+    });
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    const result = await habitService.getHistory('user-1', 'habit-1');
+
+    const byDate = new Map(result.history.map((day) => [day.date, day.completed]));
+    expect(byDate.get(dayjs.utc().format('YYYY-MM-DD'))).toBe(true);
+    expect(byDate.get(dayjs.utc().subtract(1, 'day').format('YYYY-MM-DD'))).toBe(false);
+    expect(byDate.get(dayjs.utc().subtract(2, 'day').format('YYYY-MM-DD'))).toBe(true);
+  });
+
+  it('computes the streak from the full log set returned by the repository', async () => {
+    const habit = buildHabit();
+    const habitRepository = buildHabitRepositoryMock({
+      findById: jest.fn().mockResolvedValue(habit),
+    });
+    const trackingLogRepository = buildTrackingLogRepositoryMock({
+      findRecentByHabit: jest
+        .fn()
+        .mockResolvedValue([
+          buildTrackingLog({ completedOn: daysAgo(0) }),
+          buildTrackingLog({ completedOn: daysAgo(1) }),
+          buildTrackingLog({ completedOn: daysAgo(2) }),
+        ]),
+    });
+    const habitService = createHabitService({ habitRepository, trackingLogRepository });
+
+    const result = await habitService.getHistory('user-1', 'habit-1');
+
+    expect(result.streak).toBe(3);
   });
 });

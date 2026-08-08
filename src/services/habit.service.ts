@@ -1,4 +1,6 @@
 import { Habit, Prisma, TrackingLog } from '@prisma/client';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { habitRepository, HabitRepository } from '../repositories/habit.repository';
 import {
   trackingLogRepository,
@@ -6,11 +8,27 @@ import {
 } from '../repositories/trackingLog.repository';
 import { AppError } from '../utils/AppError';
 import { todayUTC } from '../utils/date';
+import { calculateStreak } from '../utils/streak';
 import {
   CreateHabitInput,
   ListHabitsQuery,
   UpdateHabitInput,
 } from '../validators/habit.validators';
+
+dayjs.extend(utc);
+
+const HISTORY_DAYS = 7;
+const DATE_FORMAT = 'YYYY-MM-DD';
+
+export interface HabitHistoryDay {
+  date: string;
+  completed: boolean;
+}
+
+export interface HabitHistory {
+  history: HabitHistoryDay[];
+  streak: number;
+}
 
 interface HabitServiceDeps {
   habitRepository: HabitRepository;
@@ -90,6 +108,29 @@ export function createHabitService({
         }
         throw error;
       }
+    },
+
+    async getHistory(userId: string, id: string): Promise<HabitHistory> {
+      await requireOwnedHabit(userId, id);
+
+      const logs = await trackingLogs.findRecentByHabit(id);
+      const completedDays = new Set(
+        logs.map((log) => dayjs.utc(log.completedOn).format(DATE_FORMAT)),
+      );
+
+      const history: HabitHistoryDay[] = Array.from({ length: HISTORY_DAYS }, (_, index) => {
+        const date = dayjs
+          .utc()
+          .startOf('day')
+          .subtract(HISTORY_DAYS - 1 - index, 'day')
+          .format(DATE_FORMAT);
+        return { date, completed: completedDays.has(date) };
+      });
+
+      return {
+        history,
+        streak: calculateStreak(logs.map((log) => log.completedOn)),
+      };
     },
   };
 }

@@ -63,3 +63,12 @@ export const trackHabit = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(201).json({ trackingLog });
 });
+
+export const getHabitHistory = asyncHandler(async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  const { id } = req.params as unknown as HabitIdParam;
+
+  const result = await habitService.getHistory(userId, id);
+
+  res.status(200).json(result);
+});
