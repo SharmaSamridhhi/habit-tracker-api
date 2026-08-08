@@ -1,5 +1,7 @@
 # Habit Tracker API
 
+[![CI](https://github.com/SharmaSamridhhi/habit-tracker-api/actions/workflows/ci.yml/badge.svg)](https://github.com/SharmaSamridhhi/habit-tracker-api/actions/workflows/ci.yml)
+
 A backend-only **Personal Habit Tracking & Streak Management REST API**. Users
 register, log in, create habits, mark them complete for the day, and view a
 7-day history with a running streak.
