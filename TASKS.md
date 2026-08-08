@@ -8,7 +8,7 @@ Stack: Node.js + TypeScript (strict) + Express + PostgreSQL + Prisma + JWT/bcryp
 - [x] 1. Bootstrap TypeScript Express project (tooling, lint, test config, folder structure, health check)
 - [x] 2. Docker, PostgreSQL and Prisma setup (Dockerfile, docker-compose, schema, migration)
 - [x] 3. Env config validation and core middleware (error handling, logging, security headers)
-- [ ] 4. User registration — `POST /register`
+- [x] 4. User registration — `POST /register`
 - [ ] 5. Login with JWT — `POST /login`
 - [ ] 6. JWT auth middleware protecting habit routes
 - [ ] 7. Habit create & list — `POST /habits`, `GET /habits` (pagination, tag filter)
