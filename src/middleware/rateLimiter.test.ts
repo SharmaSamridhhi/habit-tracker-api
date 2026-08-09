@@ -54,4 +54,16 @@ describe('createPerUserRateLimiter', () => {
     expect(response.headers).toHaveProperty('ratelimit-limit');
     expect(response.headers).toHaveProperty('ratelimit-remaining');
   });
+
+  it('falls back to keying by IP when req.userId is not set', async () => {
+    const app = buildTestApp();
+
+    const first = await request(app).get('/ping');
+    const second = await request(app).get('/ping');
+    const third = await request(app).get('/ping');
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(third.status).toBe(429);
+  });
 });

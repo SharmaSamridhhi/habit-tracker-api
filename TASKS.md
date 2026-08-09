@@ -19,7 +19,7 @@ Stack: Node.js + TypeScript (strict) + Express + PostgreSQL + Prisma + JWT/bcryp
 - [x] 12. OpenAPI/Swagger documentation (bonus)
 - [x] 13. README + Postman collection
 - [x] 14. GitHub Actions CI workflow (lint, typecheck, test)
-- [ ] 15. Final polish and test coverage review
+- [x] 15. Final polish and test coverage review
 
 ## Workflow
 

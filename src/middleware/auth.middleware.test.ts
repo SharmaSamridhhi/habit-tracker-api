@@ -1,10 +1,11 @@
+import { Request } from 'express';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { env } from '../config/env';
 import { signToken } from '../utils/jwt';
 import { errorHandler } from './errorHandler';
-import { requireAuth } from './auth.middleware';
+import { getUserId, requireAuth } from './auth.middleware';
 
 function buildTestApp() {
   const app = express();
@@ -68,5 +69,19 @@ describe('requireAuth', () => {
     const response = await request(app).get('/protected').set('Authorization', 'Bearer garbage');
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('getUserId', () => {
+  it('returns req.userId when set', () => {
+    const req = { userId: 'user-123' } as Request;
+
+    expect(getUserId(req)).toBe('user-123');
+  });
+
+  it('throws 401 if called on a request requireAuth never ran on', () => {
+    const req = {} as Request;
+
+    expect(() => getUserId(req)).toThrow(expect.objectContaining({ statusCode: 401 }));
   });
 });

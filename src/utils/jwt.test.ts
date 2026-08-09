@@ -35,4 +35,10 @@ describe('jwt utils', () => {
   it('throws for a malformed token', () => {
     expect(() => verifyToken('not-a-real-token')).toThrow();
   });
+
+  it('throws for a validly-signed token whose payload is not an object with a string sub', () => {
+    const stringPayloadToken = jwt.sign('just-a-string-payload', env.JWT_SECRET);
+
+    expect(() => verifyToken(stringPayloadToken)).toThrow('Invalid token payload');
+  });
 });

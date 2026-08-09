@@ -12,8 +12,11 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
 });
 
-function loadEnv() {
-  const parsed = envSchema.safeParse(process.env);
+// Takes an explicit source (rather than always reading process.env directly)
+// so it can be unit tested without mutating global process.env or resetting
+// the module registry.
+export function parseEnv(source: NodeJS.ProcessEnv): z.infer<typeof envSchema> {
+  const parsed = envSchema.safeParse(source);
 
   if (!parsed.success) {
     const issues = parsed.error.issues
@@ -25,5 +28,5 @@ function loadEnv() {
   return parsed.data;
 }
 
-export const env = loadEnv();
+export const env = parseEnv(process.env);
 export type Env = typeof env;
