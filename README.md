@@ -296,7 +296,9 @@ The suite mixes:
 ```
 src/
   config/         env validation (zod), Prisma client singleton, Swagger config
-  routes/         Express routers + OpenAPI JSDoc annotations
+  routes/         Express routers only — wiring, no documentation
+  docs/           OpenAPI JSDoc annotations, one file per resource (kept out
+                  of routes/ so those stay routing logic only)
   controllers/    thin HTTP layer — parses req, calls a service, shapes the response
   services/       business logic (ownership checks, pagination, streaks, ...)
   repositories/   Prisma queries, behind a typed interface for testability

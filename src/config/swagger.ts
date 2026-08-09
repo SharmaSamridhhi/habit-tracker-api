@@ -101,7 +101,9 @@ const definition: swaggerJsdoc.OAS3Definition = {
 
 // __dirname resolves to src/config in dev (tsx) and dist/config in the
 // compiled build, so this glob picks up the JSDoc comments either way.
+// The docs themselves live in src/docs/*.openapi.ts, kept separate from the
+// route files so those stay routing logic only.
 export const swaggerSpec = swaggerJsdoc({
   definition,
-  apis: [path.join(__dirname, '../routes/*.{ts,js}')],
+  apis: [path.join(__dirname, '../docs/*.{ts,js}')],
 });

@@ -49,8 +49,6 @@ export function createHabitService({
   habitRepository: habits,
   trackingLogRepository: trackingLogs,
 }: HabitServiceDeps) {
-  // Returns 404 (never 403) when the habit belongs to someone else, so a
-  // caller can't distinguish "not found" from "not yours" and enumerate ids.
   async function requireOwnedHabit(userId: string, id: string): Promise<Habit> {
     const habit = await habits.findById(id);
     if (!habit || habit.userId !== userId) {
